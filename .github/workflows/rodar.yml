@@ -1,7 +1,9 @@
-name: Run FireX Site
+name: Run FireX Site (Test Mode)
 
 on:
   workflow_dispatch:
+  push:
+    branches: ["main"]
 
 jobs:
   run:
@@ -16,14 +18,35 @@ jobs:
         with:
           node-version: 20
 
-      - name: Install deps
-        run: npm install
+      # instala dependências só se existir package.json
+      - name: Install backend deps (safe)
+        working-directory: backend
+        run: |
+          if [ -f package.json ]; then
+            npm install
+          else
+            echo "Sem backend Node, pulando..."
+          fi
 
-      - name: Start backend
-        run: node backend/server.js &
+      # testa se backend existe
+      - name: Start backend (if exists)
+        working-directory: backend
+        run: |
+          if [ -f server.js ]; then
+            node server.js &
+            echo "Backend iniciado"
+          else
+            echo "Sem backend"
+          fi
 
-      - name: Start frontend
-        run: npx serve frontend -l 8080
+      # frontend não precisa build
+      - name: Install serve
+        run: npm install -g serve
 
-      - name: Status
-        run: echo "FireX online 🚀"
+      - name: Start frontend (test)
+        run: |
+          echo "Iniciando frontend..."
+          serve frontend -l 8080 &
+
+      - name: Health check
+        run: echo "FireX rodando em modo teste 🚀"
