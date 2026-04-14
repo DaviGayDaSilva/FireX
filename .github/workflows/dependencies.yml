@@ -1,41 +1,36 @@
-name: Run FireX Site
+name: Deploy FireX Site
 
 on:
   workflow_dispatch:
+  push:
+    branches: ["main"]
+
+permissions:
+  contents: write
 
 jobs:
-  run:
+  deploy:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      # 👉 backend (Node) só roda se existir package.json
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 20
 
-      - name: Install backend dependencies
-        working-directory: backend
-        run: |
-          if [ -f package.json ]; then
-            npm install
-          else
-            echo "Sem package.json, pulando npm install"
-          fi
-
-      - name: Start backend
-        working-directory: backend
-        run: node server.js &
-
-      # frontend não precisa npm
       - name: Install serve
         run: npm install -g serve
 
-      - name: Start frontend
-        run: serve frontend -l 8080 &
+      - name: Prepare site
+        run: |
+          mkdir -p public
+          cp -r frontend/* public/
 
-      - name: Keep alive
-        run: echo "FireX online 🚀"
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./public
